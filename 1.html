@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kolekcja Filmów</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .search-container {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .movie-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .movie-item {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .movie-item:hover {
+      transform: scale(1.05);
+    }
+
+    .movie-item img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+    }
+
+    .movie-title {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    .movie-description {
+      font-size: 14px;
+      color: #555;
+    }
+
+    .movie-actions {
+      margin-top: 10px;
+    }
+
+    .loading {
+      display: none;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Moja Kolekcja Filmów</h1>
+  <div class="search-container">
+    <input type="text" id="search-input" placeholder="Wpisz tytuł filmu">
+    <button id="search-button">Szukaj</button>
+  </div>
+
+  <div id="loading" class="loading">Ładowanie...</div>
+  <div class="movie-list" id="movie-list"></div>
+
+  <script>
+    const searchButton = document.getElementById('search-button');
+    const searchInput = document.getElementById('search-input');
+    const movieList = document.getElementById('movie-list');
+    const loadingIndicator = document.getElementById('loading');
+
+    // Funkcja do pobierania danych z API OMDB
+    const fetchMovies = async (query) => {
+      loadingIndicator.classList.add('show'); // Pokazuje stan ładowania
+      const response = await fetch(`https://www.omdbapi.com/?s=${query}&apikey=YOUR_API_KEY`);
+      const data = await response.json();
+      loadingIndicator.classList.remove('show'); // Ukrywa stan ładowania
+
+      if (data.Response === "True") {
+        renderMovies(data.Search);
+      } else {
+        alert('Nie znaleziono filmów');
+      }
+    };
+
+    // Funkcja do renderowania filmów
+    const renderMovies = (movies) => {
+      movieList.innerHTML = '';
+      movies.forEach(movie => {
+        const movieItem = document.createElement('div');
+        movieItem.classList.add('movie-item');
+        movieItem.innerHTML = `
+          <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'https://via.placeholder.com/200x300'}" alt="${movie.Title}">
+          <div class="movie-title">${movie.Title}</div>
+          <div class="movie-description">Rok: ${movie.Year}</div>
+          <div class="movie-actions">
+            <button class="add-button" data-title="${movie.Title}" data-year="${movie.Year}" data-poster="${movie.Poster}">Dodaj do kolekcji</button>
+          </div>
+        `;
+        movieList.appendChild(movieItem);
+      });
+
+      // Dodanie obsługi przycisku "Dodaj do kolekcji"
+      const addButtons = document.querySelectorAll('.add-button');
+      addButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+          const movieData = {
+            title: event.target.getAttribute('data-title'),
+            year: event.target.getAttribute('data-year'),
+            poster: event.target.getAttribute('data-poster')
+          };
+          addMovieToCollection(movieData);
+        });
+      });
+    };
+
+    // Funkcja do dodawania filmu do kolekcji
+    const addMovieToCollection = (movieData) => {
+      let collection = JSON.parse(localStorage.getItem('movieCollection')) || [];
+      collection.push(movieData);
+      localStorage.setItem('movieCollection', JSON.stringify(collection));
+      alert(`Film "${movieData.title}" dodany do kolekcji!`);
+    };
+
+    // Funkcja do renderowania kolekcji z localStorage
+    const renderCollection = () => {
+      let collection = JSON.parse(localStorage.getItem('movieCollection')) || [];
+      collection.forEach(movie => {
+        const movieItem = document.createElement('div');
+        movieItem.classList.add('movie-item');
+        movieItem.innerHTML = `
+          <img src="${movie.poster !== 'N/A' ? movie.poster : 'https://via.placeholder.com/200x300'}" alt="${movie.title}">
+          <div class="movie-title">${movie.title}</div>
+          <div class="movie-description">Rok: ${movie.year}</div>
+          <div class="movie-actions">
+            <button class="remove-button" data-title="${movie.title}">Usuń</button>
+          </div>
+        `;
+        movieList.appendChild(movieItem);
+      });
+
+      // Dodanie obsługi przycisku "Usuń"
+      const removeButtons = document.querySelectorAll('.remove-button');
+      removeButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+          const titleToRemove = event.target.getAttribute('data-title');
+          removeMovieFromCollection(titleToRemove);
+        });
+      });
+    };
+
+    // Funkcja do usuwania filmu z kolekcji
+    const removeMovieFromCollection = (title) => {
+      let collection = JSON.parse(localStorage.getItem('movieCollection')) || [];
+      collection = collection.filter(movie => movie.title !== title);
+      localStorage.setItem('movieCollection', JSON.stringify(collection));
+      alert(`Film "${title}" usunięty z kolekcji!`);
+      renderCollection(); // Odświeżenie wyświetlanej kolekcji
+    };
+
+    // Obsługa wyszukiwania
+    searchButton.addEventListener('click', () => {
+      const query = searchInput.value.trim();
+      if (query) {
+        fetchMovies(query);
+      } else {
+        alert('Wpisz tytuł filmu do wyszukania!');
+      }
+    });
+
+    // Załaduj kolekcję przy starcie
+    window.onload = () => {
+      renderCollection();
+    };
+  </script>
+</body>
+</html>

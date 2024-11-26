@@ -1,0 +1,7 @@
+film-collection-app/
+│
+├── index.html       # Główny plik HTML
+├── style.css        # Arkusz stylów
+├── script.js        # Skrypt JavaScript
+├── README.md        # Plik README (opis projektu)
+└── .gitignore       # Ignorowanie niepotrzebnych plików w repozytorium
